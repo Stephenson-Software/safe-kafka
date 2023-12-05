@@ -65,7 +65,7 @@ if [ ! -d  "$dir" ]; then
 	sudo git clone https://github.com/wurstmeister/kafka-docker /$dir
 fi
 
-# TODO: check if docker is running
+# check if docker is running
 dockerVersion=$(docker --version)
 if [[ $dockerVersion == "" ]]; then
 	echo -e "${r}Docker is not running.${nc}"
