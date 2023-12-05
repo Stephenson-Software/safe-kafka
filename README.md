@@ -1,2 +1,2 @@
-# safe-kafka
-"# safe-kafka" 
+# Safe Kafka
+Hopefully reliable Kafka
