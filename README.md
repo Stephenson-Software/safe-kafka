@@ -1,5 +1,5 @@
 # Safe Kafka
-Hopefully reliable Kafka
+Hopefully reliable Kafka orchestration
 
 ## kup.sh
 The `kup.sh` script performs the following checks:
