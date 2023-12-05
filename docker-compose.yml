@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
 
   kafka:
-    build: /opt/my-kafka-docker
+    build: /opt/local-wurstmeister-kafka-docker
     ports:
       - "9092"
     environment:
