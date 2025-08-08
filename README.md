@@ -18,4 +18,11 @@ If all checks pass, Kafka will have started successfully. If any check fails, th
 The `kdown.sh` script shuts down Kafka/Zookeeper and removes all necessary containers and volumes.
 
 ## License
-[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  
+© 2025 Daniel McCoy Stephenson. All rights reserved.  
+
+You may use, modify, and share this software for **non-commercial purposes only**.  
+Commercial use is prohibited without explicit written permission from the copyright holder.  
+
+Full license text: [Stephenson-NC License](https://github.com/Stephenson-Software/stephenson-nc-license)  
+SPDX Identifier: `Stephenson-NC`
