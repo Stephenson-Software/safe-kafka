@@ -4,10 +4,10 @@ Hopefully reliable Kafka orchestration
 ## kup.sh
 The `kup.sh` script prepares the host, starts Kafka, and then verifies that it came up.
 
-The following setup steps are applied first, each one only if it has not already been done:
+The following setup steps are performed first:
 * `DOCKER_HOST_IP` is derived from the `eth0` address if the variable is not already set
-* `docker-compose` and `git` are installed with `apt-get`
-* wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist
+* `apt-get update` is run and `docker-compose` is installed
+* wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist, installing `git` first
 
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
