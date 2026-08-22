@@ -2,20 +2,24 @@
 Hopefully reliable Kafka orchestration
 
 ## kup.sh
-The `kup.sh` script performs the following checks:
-* DOCKER_HOST_IP is set
-* docker-compose is installed
-* wurstmeister/kafka-docker is cloned to /opt/local-wurstmeister-kafka-docker
-* docker is running
-* kafka is not already running
+The `kup.sh` script prepares the host, starts Kafka, and then verifies that it came up.
+
+The following setup steps are performed first:
+* `DOCKER_HOST_IP` is derived from the `eth0` address if the variable is not already set
+* `apt-get update` is run and `docker-compose` is installed
+* wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist, installing `git` first
+
+The following checks are then performed, in order:
+* the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
+* kafka is not already running — if it is, the script reports success and exits without starting anything
 * zookeeper and kafka log counts are sufficient
 * a topic can be created
 * a topic can be deleted
 
-If all checks pass, Kafka will have started successfully. If any check fails, the script will exit with a non-zero exit code and clean up after itself.
+If all checks pass, Kafka will have started successfully. If a check fails after the containers have been brought up, the script tears them down with `docker-compose down --remove-orphans`, reports the reason for the failure, and exits with a non-zero exit code.
 
 ## kdown.sh
-The `kdown.sh` script shuts down Kafka/Zookeeper and removes all necessary containers and volumes.
+The `kdown.sh` script shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then confirms that no kafka container is left running, exiting non-zero if one is. Volumes are not removed, and `DOCKER_HOST_IP` is derived the same way as in `kup.sh` so that `docker-compose.yml` resolves.
 
 ## License
 This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  
