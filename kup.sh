@@ -17,8 +17,6 @@
 # *********************************************************************************
 
 # colors
-b='\e[0;30m'
-w='\e[0;37m'
 y='\e[0;33m'
 r='\e[0;31m'
 g='\e[0;32m'
@@ -46,7 +44,7 @@ throw_error() {
 }
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
-	# get eth0 ip address from 'ip addr' command
+	# get the network card interface's ip address from 'ip addr' command
 	export DOCKER_HOST_IP=$(ip addr show $NETWORK_CARD_INTERFACE | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
 fi
@@ -127,8 +125,7 @@ done
 echo -e "${y}Creating topic...${nc}"
 docker exec -it $EXPECTED_KAFKA_CONTAINER_NAME /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic $TEST_TOPIC_NAME
 if [ $? -ne 0 ]; then
-	echo -e "${r}Topic creation failed. Cleaning up."
-	docker-compose down --remove-orphans
+	echo -e "${r}Topic creation failed. Cleaning up.${nc}"
 	REASON_FOR_FAILURE="topic creation failed"
 	throw_error
 fi

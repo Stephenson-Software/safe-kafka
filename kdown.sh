@@ -17,16 +17,16 @@
 # *********************************************************************************
 
 # colors
-b='\e[0;30m'
-w='\e[0;37m'
 y='\e[0;33m'
 r='\e[0;31m'
 g='\e[0;32m'
 nc='\e[0m'
 
+NETWORK_CARD_INTERFACE="eth0"
+
 if [[ $DOCKER_HOST_IP == "" ]]; then
-	# get eth0 ip address from 'ip addr' command
-	export DOCKER_HOST_IP=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+	# get the network card interface's ip address from 'ip addr' command
+	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
 fi
 
