@@ -45,7 +45,7 @@ throw_error() {
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
 	# get the network card interface's ip address from 'ip addr' command
-	export DOCKER_HOST_IP=$(ip addr show $NETWORK_CARD_INTERFACE | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
 fi
 
@@ -63,7 +63,7 @@ if [ ! -d  "$dir" ]; then
 	sudo git clone https://github.com/wurstmeister/kafka-docker /$dir
 fi
 
-# check if docker is running
+# check that the docker client is installed - this does not confirm the daemon is running
 dockerVersion=$(docker --version)
 if [[ $dockerVersion == "" ]]; then
 	echo -e "${r}Docker is not running.${nc}"
@@ -88,11 +88,11 @@ zookeeperLogCountSufficient=false
 kafkaLogCountSufficient=false
 
 # wait for kafka to start
-for i in $(seq 1 $TIME_TO_WAIT_FOR_KAFKA_TO_START); do
+for i in $(seq 1 "$TIME_TO_WAIT_FOR_KAFKA_TO_START"); do
 	secondsLeft=$((TIME_TO_WAIT_FOR_KAFKA_TO_START - $i))
 
 	# verify that zookeeper/kafka containers have enough logs, otherwise throw error if time runs out
-	zookeeperLogs=$(docker logs $EXPECTED_ZOOKEEPER_CONTAINER_NAME | wc -l)
+	zookeeperLogs=$(docker logs "$EXPECTED_ZOOKEEPER_CONTAINER_NAME" | wc -l)
 	if [[ $zookeeperLogs -lt $ZOOKEEPER_THRESHOLD ]]; then
 		if [[ $secondsLeft -eq 0 ]]; then
 			REASON_FOR_FAILURE="zookeeper log count is $zookeeperLogs, less than threshold of $ZOOKEEPER_THRESHOLD"
@@ -102,7 +102,7 @@ for i in $(seq 1 $TIME_TO_WAIT_FOR_KAFKA_TO_START); do
 		zookeeperLogCountSufficient=true
 	fi
 
-	kafkaLogs=$(docker logs $EXPECTED_KAFKA_CONTAINER_NAME | wc -l)
+	kafkaLogs=$(docker logs "$EXPECTED_KAFKA_CONTAINER_NAME" | wc -l)
 	if [[ $kafkaLogs -lt $KAFKA_THRESHOLD ]]; then
 		if [[ $secondsLeft -eq 0 ]]; then
 			REASON_FOR_FAILURE="kafka log count is $kafkaLogs, less than threshold of $KAFKA_THRESHOLD"
@@ -123,7 +123,7 @@ done
 
 # verify that a topic can be created
 echo -e "${y}Creating topic...${nc}"
-docker exec -it $EXPECTED_KAFKA_CONTAINER_NAME /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic $TEST_TOPIC_NAME
+docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"
 if [ $? -ne 0 ]; then
 	echo -e "${r}Topic creation failed. Cleaning up.${nc}"
 	REASON_FOR_FAILURE="topic creation failed"
@@ -132,7 +132,7 @@ fi
 
 # verify that a topic can be deleted
 echo -e "${y}Deleting topic...${nc}"
-docker exec -it $EXPECTED_KAFKA_CONTAINER_NAME /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic $TEST_TOPIC_NAME
+docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"
 if [ $? -ne 0 ]; then
 	REASON_FOR_FAILURE="topic deletion failed"
 	throw_error
