@@ -1,6 +1,17 @@
 # Safe Kafka
 Hopefully reliable Kafka orchestration
 
+## Requirements and assumptions
+Both scripts are written against a particular kind of host. None of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
+* a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
+* an operator at the keyboard — the `apt-get install` calls are issued without `-y`, so they block on a confirmation prompt when they need to pull in packages (see #7)
+* Docker Compose **v1**, invoked as `docker-compose` — both scripts call that binary, and `kup.sh` expects the containers to be named `safe-kafka_zookeeper_1` and `safe-kafka_kafka_1`, which is the v1 naming scheme; Compose v2 names them differently (see #4)
+* the repository checked out into a directory named `safe-kafka`, with `COMPOSE_PROJECT_NAME` unset or set to `safe-kafka` — Compose derives the `safe-kafka` prefix of those container names from the directory containing `docker-compose.yml`, and the scripts hardcode that prefix (see #4)
+* the scripts run from the repository root — `docker-compose` is invoked without `-f`, so `docker-compose.yml` is resolved relative to the current directory
+* a network interface named `eth0`, unless `DOCKER_HOST_IP` is exported before running — both scripts otherwise read the address from `ip addr show eth0`
+* an interactive terminal — `kup.sh` runs its topic checks with `docker exec -it`, which fails when no TTY is attached (see #5)
+* no other running container whose name contains `kafka` — both scripts detect a running Kafka with `docker ps -f name=kafka`, which matches on any part of a container name (see #15)
+
 ## kup.sh
 The `kup.sh` script prepares the host, starts Kafka, and then verifies that it came up.
 
