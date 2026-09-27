@@ -66,7 +66,7 @@ fi
 # check that the docker client is installed - this does not confirm the daemon is running
 dockerVersion=$(docker --version)
 if [[ $dockerVersion == "" ]]; then
-	echo -e "${r}Docker is not running.${nc}"
+	echo -e "${r}Docker client not found. Is docker installed and on PATH?${nc}"
 	exit 1
 fi
 
@@ -77,7 +77,7 @@ if [[ $(docker ps -f name=kafka -q) != "" ]]; then
 fi
 
 # spin up kafka
-echo "Spinning up kafka..."
+echo -e "${y}Spinning up kafka...${nc}"
 docker-compose down --remove-orphans
 docker-compose up --remove-orphans --build -d
 
