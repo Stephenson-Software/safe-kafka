@@ -4,7 +4,7 @@ Hopefully reliable Kafka orchestration
 ## Requirements and assumptions
 Both scripts are written against a particular kind of host. None of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
 * a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
-* an operator at the keyboard — the `apt-get install` calls are issued without `-y`, so they block on a confirmation prompt when they need to pull in packages (see #7)
+* `sudo` that does not prompt for a password, or an operator at the keyboard to enter it — the `apt-get install` calls pass `-y` so `apt-get` itself does not prompt, but `sudo` may still ask for a password in an unattended run
 * a running Docker daemon reachable by the invoking user without `sudo` — every `docker` and `docker-compose` call in both scripts is unprivileged (typically `docker` group membership), and the only up-front check, `docker --version`, confirms the client is installed rather than that the daemon is reachable (see #13)
 * Docker Compose **v1**, invoked as `docker-compose` — both scripts call that binary, and `kup.sh` expects the containers to be named `safe-kafka_zookeeper_1` and `safe-kafka_kafka_1`, which is the v1 naming scheme; Compose v2 names them differently (see #4)
 * the repository checked out into a directory named `safe-kafka`, with `COMPOSE_PROJECT_NAME` unset or set to `safe-kafka` — Compose derives the `safe-kafka` prefix of those container names from the directory containing `docker-compose.yml`, and the scripts hardcode that prefix (see #4)
@@ -18,8 +18,10 @@ The `kup.sh` script prepares the host, starts Kafka, and then verifies that it c
 
 The following setup steps are performed first:
 * `DOCKER_HOST_IP` is derived from the `eth0` address if the variable is not already set
-* `apt-get update` is run and `docker-compose` is installed
-* wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist, installing `git` first
+* `apt-get update` is run and `docker-compose` is installed with `apt-get install -y`
+* wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist, installing `git` first with `apt-get install -y`
+
+If either `apt-get install` fails, the script reports which package could not be installed and exits with a non-zero exit code before any container is started.
 
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
