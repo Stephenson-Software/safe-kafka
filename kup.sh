@@ -54,13 +54,19 @@ sudo apt-get update
 
 # prereqs
 echo -e "${y}Checking prerequisites...${nc}"
-sudo apt-get install docker-compose
+if ! sudo apt-get install -y docker-compose; then
+	echo -e "${r}Failed to install docker-compose with apt-get. Check the apt-get output above.${nc}"
+	exit 1
+fi
 
 dir=/opt/local-wurstmeister-kafka-docker
 if [ ! -d  "$dir" ]; then
 	echo -e "${y}Cloning local-wurstmeister-kafka-docker...${nc}"
-	sudo apt-get install git
-	sudo git clone https://github.com/wurstmeister/kafka-docker /$dir
+	if ! sudo apt-get install -y git; then
+		echo -e "${r}Failed to install git with apt-get. Check the apt-get output above.${nc}"
+		exit 1
+	fi
+	sudo git clone https://github.com/wurstmeister/kafka-docker "$dir"
 fi
 
 # check that the docker client is installed - this does not confirm the daemon is running
