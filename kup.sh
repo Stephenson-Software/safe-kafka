@@ -36,7 +36,7 @@ TEST_TOPIC_NAME="test"
 # This function is used to clean up and exit if kafka fails to start.
 # $REASON_FOR_FAILURE is the reason why kafka failed to start.
 throw_error() {
-	echo -e ${r}=== ERROR ===${nc}
+	echo -e "${r}=== ERROR ===${nc}"
 	docker-compose down --remove-orphans
 	echo -e "${r}Kafka failed to start. Reason: '$REASON_FOR_FAILURE'${nc}"
 	unset REASON_FOR_FAILURE
@@ -95,7 +95,7 @@ kafkaLogCountSufficient=false
 
 # wait for kafka to start
 for i in $(seq 1 "$TIME_TO_WAIT_FOR_KAFKA_TO_START"); do
-	secondsLeft=$((TIME_TO_WAIT_FOR_KAFKA_TO_START - $i))
+	secondsLeft=$((TIME_TO_WAIT_FOR_KAFKA_TO_START - i))
 
 	# verify that zookeeper/kafka containers have enough logs, otherwise throw error if time runs out
 	zookeeperLogs=$(docker logs "$EXPECTED_ZOOKEEPER_CONTAINER_NAME" | wc -l)
@@ -129,8 +129,7 @@ done
 
 # verify that a topic can be created
 echo -e "${y}Creating topic...${nc}"
-docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"
-if [ $? -ne 0 ]; then
+if ! docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"; then
 	echo -e "${r}Topic creation failed. Cleaning up.${nc}"
 	REASON_FOR_FAILURE="topic creation failed"
 	throw_error
@@ -138,8 +137,7 @@ fi
 
 # verify that a topic can be deleted
 echo -e "${y}Deleting topic...${nc}"
-docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"
-if [ $? -ne 0 ]; then
+if ! docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"; then
 	REASON_FOR_FAILURE="topic deletion failed"
 	throw_error
 fi
