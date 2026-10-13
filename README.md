@@ -2,7 +2,7 @@
 Hopefully reliable Kafka orchestration
 
 ## Requirements and assumptions
-Both scripts are written against a particular kind of host. Apart from Docker daemon reachability, which `kup.sh` checks before starting anything, none of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
+Both scripts are written against a particular kind of host. Apart from Docker daemon reachability, which `kup.sh` checks after its `apt-get` and clone steps but before starting any container, none of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
 * a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
 * `sudo` that does not prompt for a password, or an operator at the keyboard to enter it — the `apt-get install` calls pass `-y` so `apt-get` itself does not prompt, but `sudo` may still ask for a password in an unattended run
 * a running Docker daemon reachable by the invoking user without `sudo` — every `docker` and `docker-compose` call in both scripts is unprivileged (typically `docker` group membership); `kup.sh` probes the daemon with `docker info` and exits non-zero before starting any container if it is not reachable, but `kdown.sh` performs no such check
