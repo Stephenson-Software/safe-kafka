@@ -2,10 +2,10 @@
 Hopefully reliable Kafka orchestration
 
 ## Requirements and assumptions
-Both scripts are written against a particular kind of host. None of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
+Both scripts are written against a particular kind of host. Apart from Docker daemon reachability, which `kup.sh` checks after its `apt-get` and clone steps but before starting any container, none of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
 * a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
 * `sudo` that does not prompt for a password, or an operator at the keyboard to enter it — the `apt-get install` calls pass `-y` so `apt-get` itself does not prompt, but `sudo` may still ask for a password in an unattended run
-* a running Docker daemon reachable by the invoking user without `sudo` — every `docker` and `docker-compose` call in both scripts is unprivileged (typically `docker` group membership), and the only up-front check, `docker --version`, confirms the client is installed rather than that the daemon is reachable; with the daemon stopped, `kup.sh` instead fails after the full wait with a Zookeeper log-count reason (see #20)
+* a running Docker daemon reachable by the invoking user without `sudo` — every `docker` and `docker-compose` call in both scripts is unprivileged (typically `docker` group membership); `kup.sh` probes the daemon with `docker info` and exits non-zero before starting any container if it is not reachable, but `kdown.sh` performs no such check
 * Docker Compose **v1**, invoked as `docker-compose` — both scripts call that binary, and `kup.sh` expects the containers to be named `safe-kafka_zookeeper_1` and `safe-kafka_kafka_1`, which is the v1 naming scheme; Compose v2 names them differently (see #4)
 * the repository checked out into a directory named `safe-kafka`, with `COMPOSE_PROJECT_NAME` unset or set to `safe-kafka` — Compose derives the `safe-kafka` prefix of those container names from the directory containing `docker-compose.yml`, and the scripts hardcode that prefix (see #4)
 * the scripts run from the repository root — `docker-compose` is invoked without `-f`, so `docker-compose.yml` is resolved relative to the current directory
@@ -25,6 +25,7 @@ If either `apt-get install` fails, the script reports which package could not be
 
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
+* the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
 * kafka is not already running — if it is, the script reports success and exits without starting anything
 * zookeeper and kafka log counts are sufficient
 * a topic can be created

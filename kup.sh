@@ -76,6 +76,12 @@ if [[ $dockerVersion == "" ]]; then
 	exit 1
 fi
 
+# check that the docker daemon is reachable by the invoking user
+if ! docker info >/dev/null 2>&1; then
+	echo -e "${r}Docker daemon not reachable. Is it running, and can this user access it without sudo?${nc}"
+	exit 1
+fi
+
 # check if kafka is already running
 if [[ $(docker ps -f name=kafka -q) != "" ]]; then
 	echo -e "${g}Kafka is already running.${nc}"
