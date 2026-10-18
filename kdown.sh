@@ -30,6 +30,12 @@ if [[ $DOCKER_HOST_IP == "" ]]; then
 	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
 fi
 
+# check that the docker daemon is reachable by the invoking user
+if ! docker info >/dev/null 2>&1; then
+	echo -e "${r}Docker daemon not reachable. Is it running, and can this user access it without sudo?${nc}"
+	exit 1
+fi
+
 echo -e "${y}Stopping kafka and removing containers...${nc}"
 docker-compose down --remove-orphans
 
