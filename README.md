@@ -21,17 +21,18 @@ The following setup steps are performed first:
 * `apt-get update` is run and `docker-compose` is installed with `apt-get install -y`
 * wurstmeister/kafka-docker is cloned to `/opt/local-wurstmeister-kafka-docker` if that directory does not exist, installing `git` first with `apt-get install -y`
 
-If either `apt-get install` fails, the script reports which package could not be installed and exits with a non-zero exit code before any container is started.
+If either `apt-get install` fails, the script reports which package could not be installed and exits with a non-zero exit code before any container is started. The same applies if the clone fails. A failed `apt-get update` is reported as a warning only, and the script continues with the existing package lists.
 
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
 * the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
 * kafka is not already running — if it is, the script reports success and exits without starting anything
+* `docker-compose up` succeeds
 * zookeeper and kafka log counts are sufficient
 * a topic can be created
 * a topic can be deleted
 
-If all checks pass, Kafka will have started successfully. If a check fails after the containers have been brought up, the script tears them down with `docker-compose down --remove-orphans`, reports the reason for the failure, and exits with a non-zero exit code.
+If all checks pass, Kafka will have started successfully. If `docker-compose up` or any later check fails, the script tears the containers down with `docker-compose down --remove-orphans`, reports the reason for the failure, and exits with a non-zero exit code.
 
 ## kdown.sh
 Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then confirms that no kafka container is left running, exiting non-zero if one is. Volumes are not removed, and `DOCKER_HOST_IP` is derived the same way as in `kup.sh` so that `docker-compose.yml` resolves.
