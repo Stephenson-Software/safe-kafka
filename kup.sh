@@ -50,7 +50,9 @@ if [[ $DOCKER_HOST_IP == "" ]]; then
 fi
 
 echo -e "${y}Updating apt...${nc}"
-sudo apt-get update
+if ! sudo apt-get update; then
+	echo -e "${y}apt-get update failed. Continuing with the existing package lists; check the apt-get output above.${nc}"
+fi
 
 # prereqs
 echo -e "${y}Checking prerequisites...${nc}"
@@ -66,7 +68,10 @@ if [ ! -d  "$dir" ]; then
 		echo -e "${r}Failed to install git with apt-get. Check the apt-get output above.${nc}"
 		exit 1
 	fi
-	sudo git clone https://github.com/wurstmeister/kafka-docker "$dir"
+	if ! sudo git clone https://github.com/wurstmeister/kafka-docker "$dir"; then
+		echo -e "${r}Failed to clone wurstmeister/kafka-docker into $dir. Check the git output above.${nc}"
+		exit 1
+	fi
 fi
 
 # check that the docker client is installed - this does not confirm the daemon is running
@@ -91,7 +96,10 @@ fi
 # spin up kafka
 echo -e "${y}Spinning up kafka...${nc}"
 docker-compose down --remove-orphans
-docker-compose up --remove-orphans --build -d
+if ! docker-compose up --remove-orphans --build -d; then
+	REASON_FOR_FAILURE="docker-compose up failed"
+	throw_error
+fi
 
 # show running containers
 docker ps
