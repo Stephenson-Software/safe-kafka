@@ -27,7 +27,7 @@ The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
 * the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
 * kafka is not already running — if it is, the script reports success and exits without starting anything
-* `docker-compose up` succeeds
+* `docker-compose up` succeeds — the script first runs `docker-compose down --remove-orphans` to clear any containers left over from a previous run, then starts them with `docker-compose up --remove-orphans --build -d`
 * zookeeper and kafka log counts are sufficient
 * a topic can be created
 * a topic can be deleted
