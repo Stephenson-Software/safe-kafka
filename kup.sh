@@ -45,7 +45,12 @@ throw_error() {
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
 	# get the network card interface's ip address from 'ip addr' command
-	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+	# take only the first address in case the interface has more than one
+	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1 | head -n1)
+	if [[ $DOCKER_HOST_IP == "" ]]; then
+		echo -e "${r}Could not derive DOCKER_HOST_IP: no IPv4 address found on network interface '$NETWORK_CARD_INTERFACE'. Export DOCKER_HOST_IP, or set NETWORK_CARD_INTERFACE in kup.sh to an interface that has one.${nc}"
+		exit 1
+	fi
 	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
 fi
 
