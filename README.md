@@ -10,7 +10,6 @@ Both scripts are written against a particular kind of host. Apart from Docker da
 * the repository checked out into a directory named `safe-kafka`, with `COMPOSE_PROJECT_NAME` unset or set to `safe-kafka` — Compose derives the `safe-kafka` prefix of those container names from the directory containing `docker-compose.yml`, and the scripts hardcode that prefix (see #4)
 * the scripts run from the repository root — `docker-compose` is invoked without `-f`, so `docker-compose.yml` is resolved relative to the current directory
 * a network interface named `eth0` with an IPv4 address, unless `DOCKER_HOST_IP` is exported before running — both scripts otherwise read the address from `ip addr show eth0`, taking the first one in `kup.sh`; if no address is found, `kup.sh` exits non-zero before running `apt-get`, while `kdown.sh` continues with an empty `DOCKER_HOST_IP`
-* an interactive terminal — `kup.sh` runs its topic checks with `docker exec -it`, which fails when no TTY is attached (see #5)
 * no other running container whose name contains `kafka` — both scripts detect a running Kafka with `docker ps -f name=kafka`, which matches on any part of a container name (see #15)
 
 ## kup.sh

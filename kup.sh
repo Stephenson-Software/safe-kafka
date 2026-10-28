@@ -148,7 +148,7 @@ done
 
 # verify that a topic can be created
 echo -e "${y}Creating topic...${nc}"
-if ! docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"; then
+if ! docker exec "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"; then
 	echo -e "${r}Topic creation failed. Cleaning up.${nc}"
 	REASON_FOR_FAILURE="topic creation failed"
 	throw_error
@@ -156,7 +156,7 @@ fi
 
 # verify that a topic can be deleted
 echo -e "${y}Deleting topic...${nc}"
-if ! docker exec -it "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"; then
+if ! docker exec "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"; then
 	REASON_FOR_FAILURE="topic deletion failed"
 	throw_error
 fi
