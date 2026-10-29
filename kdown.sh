@@ -26,8 +26,14 @@ NETWORK_CARD_INTERFACE="eth0"
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
 	# get the network card interface's ip address from 'ip addr' command
-	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
-	echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
+	# take only the first address in case the interface has more than one
+	export DOCKER_HOST_IP=$(ip addr show "$NETWORK_CARD_INTERFACE" | grep "inet\b" | awk '{print $2}' | cut -d/ -f1 | head -n1)
+	if [[ $DOCKER_HOST_IP == "" ]]; then
+		# docker-compose down does not need the address, so warn rather than refuse to tear down
+		echo -e "${y}Could not derive DOCKER_HOST_IP: no IPv4 address found on network interface '$NETWORK_CARD_INTERFACE'. Continuing with it empty, since stopping the containers does not use it.${nc}"
+	else
+		echo -e "${y}DOCKER_HOST_IP not set. Setting to $DOCKER_HOST_IP${nc}"
+	fi
 fi
 
 # check that the docker daemon is reachable by the invoking user
