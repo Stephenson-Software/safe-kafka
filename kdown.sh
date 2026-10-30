@@ -22,6 +22,7 @@ r='\e[0;31m'
 g='\e[0;32m'
 nc='\e[0m'
 
+EXPECTED_KAFKA_CONTAINER_NAME="safe-kafka_kafka_1"
 NETWORK_CARD_INTERFACE="eth0"
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
@@ -45,8 +46,8 @@ fi
 echo -e "${y}Stopping kafka and removing containers...${nc}"
 docker-compose down --remove-orphans
 
-# if kafka is not running, success
-if [[ $(docker ps -f name=kafka -q) == "" ]]; then
+# if kafka is not running, success - the name filter is a regex, so anchor it to match only this project's kafka container
+if [[ $(docker ps -f "name=^/?${EXPECTED_KAFKA_CONTAINER_NAME}\$" -q) == "" ]]; then
     echo -e "${g}Kafka is stopped.${nc}"
     exit 0
 else
