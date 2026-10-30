@@ -92,8 +92,8 @@ if ! docker info >/dev/null 2>&1; then
 	exit 1
 fi
 
-# check if kafka is already running
-if [[ $(docker ps -f name=kafka -q) != "" ]]; then
+# check if kafka is already running - the name filter is a regex, so anchor it to match only this project's kafka container
+if [[ $(docker ps -f "name=^/?${EXPECTED_KAFKA_CONTAINER_NAME}\$" -q) != "" ]]; then
 	echo -e "${g}Kafka is already running.${nc}"
 	exit 0
 fi

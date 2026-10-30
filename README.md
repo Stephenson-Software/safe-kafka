@@ -6,11 +6,11 @@ Both scripts are written against a particular kind of host. Apart from Docker da
 * a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
 * `sudo` that does not prompt for a password, or an operator at the keyboard to enter it — the `apt-get install` calls pass `-y` so `apt-get` itself does not prompt, but `sudo` may still ask for a password in an unattended run
 * a running Docker daemon reachable by the invoking user without `sudo` — every `docker` and `docker-compose` call in both scripts is unprivileged (typically `docker` group membership); `kup.sh` probes the daemon with `docker info` and exits non-zero before starting any container if it is not reachable, and `kdown.sh` runs the same probe and exits non-zero before running `docker-compose down`
-* Docker Compose **v1**, invoked as `docker-compose` — both scripts call that binary, and `kup.sh` expects the containers to be named `safe-kafka_zookeeper_1` and `safe-kafka_kafka_1`, which is the v1 naming scheme; Compose v2 names them differently (see #4)
+* Docker Compose **v1**, invoked as `docker-compose` — both scripts call that binary, and `kup.sh` expects the containers to be named `safe-kafka_zookeeper_1` and `safe-kafka_kafka_1` (`kdown.sh` expects the latter), which is the v1 naming scheme; Compose v2 names them differently (see #4)
 * the repository checked out into a directory named `safe-kafka`, with `COMPOSE_PROJECT_NAME` unset or set to `safe-kafka` — Compose derives the `safe-kafka` prefix of those container names from the directory containing `docker-compose.yml`, and the scripts hardcode that prefix (see #4)
 * the scripts run from the repository root — `docker-compose` is invoked without `-f`, so `docker-compose.yml` is resolved relative to the current directory
 * a network interface named `eth0` with an IPv4 address, unless `DOCKER_HOST_IP` is exported before running — both scripts otherwise read the address from `ip addr show eth0`, taking the first one; if no address is found, `kup.sh` exits non-zero before running `apt-get`, while `kdown.sh` prints a warning and continues with an empty `DOCKER_HOST_IP`, since `docker-compose down` does not use it
-* no other running container whose name contains `kafka` — both scripts detect a running Kafka with `docker ps -f name=kafka`, which matches on any part of a container name (see #15)
+* Kafka is detected as running only by its exact container name — both scripts query `docker ps` for a running container named exactly `safe-kafka_kafka_1`, so other containers whose names contain `kafka`, including this project's own Zookeeper container, do not affect the result
 
 ## kup.sh
 The `kup.sh` script prepares the host, starts Kafka, and then verifies that it came up.
@@ -25,7 +25,7 @@ If either `apt-get install` fails, the script reports which package could not be
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
 * the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
-* kafka is not already running — if it is, the script reports success and exits without starting anything
+* kafka is not already running — that is, no running container is named exactly `safe-kafka_kafka_1`; if one is, the script reports success and exits without starting anything
 * `docker-compose up` succeeds — the script first runs `docker-compose down --remove-orphans` to clear any containers left over from a previous run (its result is not checked), then starts the services with `docker-compose up --remove-orphans --build -d`
 * zookeeper and kafka log counts are sufficient
 * a topic can be created
@@ -34,7 +34,7 @@ The following checks are then performed, in order:
 If all checks pass, Kafka will have started successfully. If `docker-compose up` or any later check fails, the script tears the containers down with `docker-compose down --remove-orphans`, reports the reason for the failure, and exits with a non-zero exit code.
 
 ## kdown.sh
-Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then confirms that no kafka container is left running, exiting non-zero if one is. Volumes are not removed. Before any of this, if `DOCKER_HOST_IP` is not already set, it is derived from the first `eth0` IPv4 address, as in `kup.sh`; unlike `kup.sh`, if `eth0` has no IPv4 address the script warns and continues with the variable empty rather than exiting, so that teardown is never refused.
+Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then confirms that the `safe-kafka_kafka_1` container is no longer running, exiting non-zero if it is; other containers are not considered, so a Zookeeper container left running is not reported. Volumes are not removed. Before any of this, if `DOCKER_HOST_IP` is not already set, it is derived from the first `eth0` IPv4 address, as in `kup.sh`; unlike `kup.sh`, if `eth0` has no IPv4 address the script warns and continues with the variable empty rather than exiting, so that teardown is never refused.
 
 ## License
 This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  
