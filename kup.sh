@@ -22,10 +22,11 @@ r='\e[0;31m'
 g='\e[0;32m'
 nc='\e[0m'
 
-EXPECTED_ZOOKEEPER_CONTAINER_NAME="safe-kafka_zookeeper_1"
+# service names from docker-compose.yml - containers are found through these rather than by container name
+ZOOKEEPER_SERVICE_NAME="zookeeper"
 ZOOKEEPER_THRESHOLD=10
 
-EXPECTED_KAFKA_CONTAINER_NAME="safe-kafka_kafka_1"
+KAFKA_SERVICE_NAME="kafka"
 KAFKA_THRESHOLD=100
 
 TIME_TO_WAIT_FOR_KAFKA_TO_START=30
@@ -41,6 +42,27 @@ throw_error() {
 	echo -e "${r}Kafka failed to start. Reason: '$REASON_FOR_FAILURE'${nc}"
 	unset REASON_FOR_FAILURE
 	exit 1
+}
+
+# Prints the ID of the container docker-compose created for service $1, running or not, or nothing if there is none.
+# Returns non-zero if docker-compose ps itself fails.
+# Looking the container up through docker-compose works whatever the Compose version's naming scheme
+# and whatever the checkout directory is called.
+container_id_for_service() {
+	local containerIds
+	containerIds=$(docker-compose ps -q "$1") || return 1
+	echo "${containerIds%%$'\n'*}"
+}
+
+# Prints the ID of the running container docker-compose created for service $1, or nothing if it is not running.
+# Returns non-zero if docker-compose ps itself fails.
+running_container_id_for_service() {
+	local containerId
+	containerId=$(container_id_for_service "$1") || return 1
+	if [[ $containerId == "" ]]; then
+		return 0
+	fi
+	docker ps -q -f "id=$containerId"
 }
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
@@ -92,8 +114,8 @@ if ! docker info >/dev/null 2>&1; then
 	exit 1
 fi
 
-# check if kafka is already running - the name filter is a regex, so anchor it to match only this project's kafka container
-if [[ $(docker ps -f "name=^/?${EXPECTED_KAFKA_CONTAINER_NAME}\$" -q) != "" ]]; then
+# check if kafka is already running - only this project's kafka service container is considered
+if [[ $(running_container_id_for_service "$KAFKA_SERVICE_NAME") != "" ]]; then
 	echo -e "${g}Kafka is already running.${nc}"
 	exit 0
 fi
@@ -109,6 +131,19 @@ fi
 # show running containers
 docker ps
 
+# find the containers docker-compose created, failing with a specific reason if either is missing
+zookeeperContainerId=$(container_id_for_service "$ZOOKEEPER_SERVICE_NAME")
+if [[ $zookeeperContainerId == "" ]]; then
+	REASON_FOR_FAILURE="no container found for the '$ZOOKEEPER_SERVICE_NAME' service after docker-compose up"
+	throw_error
+fi
+
+kafkaContainerId=$(container_id_for_service "$KAFKA_SERVICE_NAME")
+if [[ $kafkaContainerId == "" ]]; then
+	REASON_FOR_FAILURE="no container found for the '$KAFKA_SERVICE_NAME' service after docker-compose up"
+	throw_error
+fi
+
 zookeeperLogCountSufficient=false
 kafkaLogCountSufficient=false
 
@@ -117,7 +152,7 @@ for i in $(seq 1 "$TIME_TO_WAIT_FOR_KAFKA_TO_START"); do
 	secondsLeft=$((TIME_TO_WAIT_FOR_KAFKA_TO_START - i))
 
 	# verify that zookeeper/kafka containers have enough logs, otherwise throw error if time runs out
-	zookeeperLogs=$(docker logs "$EXPECTED_ZOOKEEPER_CONTAINER_NAME" | wc -l)
+	zookeeperLogs=$(docker logs "$zookeeperContainerId" | wc -l)
 	if [[ $zookeeperLogs -lt $ZOOKEEPER_THRESHOLD ]]; then
 		if [[ $secondsLeft -eq 0 ]]; then
 			REASON_FOR_FAILURE="zookeeper log count is $zookeeperLogs, less than threshold of $ZOOKEEPER_THRESHOLD"
@@ -127,7 +162,7 @@ for i in $(seq 1 "$TIME_TO_WAIT_FOR_KAFKA_TO_START"); do
 		zookeeperLogCountSufficient=true
 	fi
 
-	kafkaLogs=$(docker logs "$EXPECTED_KAFKA_CONTAINER_NAME" | wc -l)
+	kafkaLogs=$(docker logs "$kafkaContainerId" | wc -l)
 	if [[ $kafkaLogs -lt $KAFKA_THRESHOLD ]]; then
 		if [[ $secondsLeft -eq 0 ]]; then
 			REASON_FOR_FAILURE="kafka log count is $kafkaLogs, less than threshold of $KAFKA_THRESHOLD"
@@ -148,7 +183,7 @@ done
 
 # verify that a topic can be created
 echo -e "${y}Creating topic...${nc}"
-if ! docker exec "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"; then
+if ! docker exec "$kafkaContainerId" /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic "$TEST_TOPIC_NAME"; then
 	echo -e "${r}Topic creation failed. Cleaning up.${nc}"
 	REASON_FOR_FAILURE="topic creation failed"
 	throw_error
@@ -156,7 +191,7 @@ fi
 
 # verify that a topic can be deleted
 echo -e "${y}Deleting topic...${nc}"
-if ! docker exec "$EXPECTED_KAFKA_CONTAINER_NAME" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"; then
+if ! docker exec "$kafkaContainerId" /opt/kafka/bin/kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic "$TEST_TOPIC_NAME"; then
 	REASON_FOR_FAILURE="topic deletion failed"
 	throw_error
 fi
