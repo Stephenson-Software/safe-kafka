@@ -22,8 +22,23 @@ r='\e[0;31m'
 g='\e[0;32m'
 nc='\e[0m'
 
-EXPECTED_KAFKA_CONTAINER_NAME="safe-kafka_kafka_1"
+# service name from docker-compose.yml - the container is found through this rather than by container name
+KAFKA_SERVICE_NAME="kafka"
 NETWORK_CARD_INTERFACE="eth0"
+
+# Prints the ID of the running container docker-compose created for service $1, or nothing if it is not running.
+# Returns non-zero if docker-compose ps itself fails.
+# Looking the container up through docker-compose works whatever the Compose version's naming scheme
+# and whatever the checkout directory is called.
+running_container_id_for_service() {
+	local containerId
+	containerId=$(docker-compose ps -q "$1") || return 1
+	containerId=${containerId%%$'\n'*}
+	if [[ $containerId == "" ]]; then
+		return 0
+	fi
+	docker ps -q -f "id=$containerId"
+}
 
 if [[ $DOCKER_HOST_IP == "" ]]; then
 	# get the network card interface's ip address from 'ip addr' command
@@ -46,8 +61,14 @@ fi
 echo -e "${y}Stopping kafka and removing containers...${nc}"
 docker-compose down --remove-orphans
 
-# if kafka is not running, success - the name filter is a regex, so anchor it to match only this project's kafka container
-if [[ $(docker ps -f "name=^/?${EXPECTED_KAFKA_CONTAINER_NAME}\$" -q) == "" ]]; then
+# look up this project's kafka service container - a failed lookup is not treated as "stopped"
+if ! kafkaContainerId=$(running_container_id_for_service "$KAFKA_SERVICE_NAME"); then
+	echo -e "${r}Could not check whether kafka is still running: docker-compose ps failed. Is the script being run from the repository root?${nc}"
+	exit 1
+fi
+
+# if kafka is not running, success
+if [[ $kafkaContainerId == "" ]]; then
     echo -e "${g}Kafka is stopped.${nc}"
     exit 0
 else
