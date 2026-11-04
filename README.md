@@ -1,6 +1,21 @@
 # Safe Kafka
 Hopefully reliable Kafka orchestration
 
+## Usage
+Run both scripts from the repository root, on a host that meets the requirements below:
+```
+./kup.sh
+./kdown.sh
+```
+`kup.sh` starts Kafka and verifies that it came up, and `kdown.sh` stops it. Each exits with a non-zero exit code on the failures described in its section below.
+
+To use an address other than the first `eth0` IPv4 address, export `DOCKER_HOST_IP` first:
+```
+export DOCKER_HOST_IP=<host ip>
+```
+
+Kafka's container port 9092 is published on a host port chosen by Docker, not on host port 9092. The mapping appears in the `PORTS` column of the `docker ps` output that `kup.sh` prints after starting the containers.
+
 ## Requirements and assumptions
 Both scripts are written against a particular kind of host. Apart from Docker daemon reachability, which `kup.sh` checks after its `apt-get` and clone steps but before starting any container and `kdown.sh` checks before stopping anything, and the `eth0` address, which `kup.sh` checks before doing anything else, none of the conditions below are checked up front, so a mismatch surfaces as a failure partway through a run rather than as a clear prerequisite error:
 * a Debian-based host with `apt-get` and `sudo` — `kup.sh` installs `docker-compose` and `git` with `sudo apt-get install` and clones into `/opt` with `sudo git clone`
@@ -10,6 +25,8 @@ Both scripts are written against a particular kind of host. Apart from Docker da
 * the scripts run from the repository root — `docker-compose` is invoked without `-f`, so `docker-compose.yml` is resolved relative to the current directory, and only containers belonging to the Compose project of that directory are found
 * a network interface named `eth0` with an IPv4 address, unless `DOCKER_HOST_IP` is exported before running — both scripts otherwise read the address from `ip addr show eth0`, taking the first one; if no address is found, `kup.sh` exits non-zero before running `apt-get`, while `kdown.sh` prints a warning and continues with an empty `DOCKER_HOST_IP`, since `docker-compose down` does not use it
 * Kafka is detected as running only through this project's `kafka` service — both scripts look up that service's container with `docker-compose ps -q kafka` and then check with `docker ps` that it is running, so other containers whose names contain `kafka`, including this project's own Zookeeper container, do not affect the result
+* host port 2181 is free — `docker-compose.yml` publishes Zookeeper on it, so if another process holds it, `docker-compose up` fails
+* the Docker socket is at `/var/run/docker.sock` — `docker-compose.yml` mounts it into the `kafka` container, so anything running in that container can control the host's Docker daemon
 
 ## kup.sh
 The `kup.sh` script prepares the host, starts Kafka, and then verifies that it came up.
