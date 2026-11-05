@@ -70,7 +70,7 @@ The functional checks need a host that meets the requirements above, and are run
 3. `./kup.sh` exits 0 and prints `Kafka is already running.` without restarting the containers — it still runs its `apt-get` steps first, because that check comes after them
 4. `./kdown.sh` exits 0 and prints `Kafka is stopped.`, and `docker ps` no longer shows either container
 5. `./kdown.sh` run again, with nothing running, exits 0 and prints `Kafka is stopped.`
-6. To exercise the failure path, temporarily raise `ZOOKEEPER_THRESHOLD` in `kup.sh` to a value the logs cannot reach, such as `100000`, and run `./kup.sh`. After about 30 seconds it exits non-zero and prints `Kafka failed to start. Reason: 'zookeeper log count is <count>, less than threshold of 100000'`, and `docker ps` shows neither container. Revert the edit afterwards.
+6. To exercise the failure path, temporarily raise `ZOOKEEPER_THRESHOLD` in `kup.sh` to a value the logs cannot reach, such as `100000`, and run `./kup.sh`. About 30 seconds after the containers start, it exits non-zero and prints `Kafka failed to start. Reason: 'zookeeper log count is <count>, less than threshold of 100000'`, and `docker ps` shows neither container. Revert the edit afterwards.
 
 ## License
 This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  
