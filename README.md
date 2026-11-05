@@ -53,6 +53,25 @@ If all checks pass, Kafka will have started successfully. If `docker-compose up`
 ## kdown.sh
 Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then looks up the `kafka` service's container with `docker-compose ps -q kafka` and confirms that it is no longer running, exiting non-zero if it is, or if `docker-compose ps` itself fails; other containers are not considered, so a Zookeeper container left running is not reported. Volumes are not removed. Before any of this, if `DOCKER_HOST_IP` is not already set, it is derived from the first `eth0` IPv4 address, as in `kup.sh`; unlike `kup.sh`, if `eth0` has no IPv4 address the script warns and continues with the variable empty rather than exiting, so that teardown is never refused.
 
+## Validating a change
+This repository has no CI and no automated tests, so a change to either script or to `docker-compose.yml` is validated by hand.
+
+The static checks need neither Docker nor a running Kafka:
+```
+bash -n kup.sh
+bash -n kdown.sh
+shellcheck kup.sh kdown.sh
+```
+`bash -n` must pass for both scripts. Compare `shellcheck` output with the same command on `main`: a change should add no findings. Passing these checks shows that the scripts are well-formed, not that Kafka starts.
+
+The functional checks need a host that meets the requirements above, and are run in this order from the repository root:
+1. `./kup.sh` exits 0 and prints `Kafka started successfully!`
+2. `docker ps` shows the `zookeeper` and `kafka` containers
+3. `./kup.sh` exits 0 and prints `Kafka is already running.` without restarting the containers — it still runs its `apt-get` steps first, because that check comes after them
+4. `./kdown.sh` exits 0 and prints `Kafka is stopped.`, and `docker ps` no longer shows either container
+5. `./kdown.sh` run again, with nothing running, exits 0 and prints `Kafka is stopped.`
+6. To exercise the failure path, temporarily raise `ZOOKEEPER_THRESHOLD` in `kup.sh` to a value the logs cannot reach, such as `100000`, and run `./kup.sh`. After about 30 seconds it exits non-zero and prints `Kafka failed to start. Reason: 'zookeeper log count is <count>, less than threshold of 100000'`, and `docker ps` shows neither container. Revert the edit afterwards.
+
 ## License
 This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  
 © 2025 Daniel McCoy Stephenson. All rights reserved.  
