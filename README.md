@@ -44,7 +44,7 @@ The following checks are then performed, in order:
 * kafka is not already running — that is, the container `docker-compose ps -q kafka` reports for this project is not running; if it is, the script reports success and exits without starting anything. Unlike in `kdown.sh`, a failed `docker-compose ps` is not treated as an error here: it counts as not running, and the script continues
 * `docker-compose up` succeeds — the script first runs `docker-compose down --remove-orphans` to clear any containers left over from a previous run (its result is not checked), then starts the services with `docker-compose up --remove-orphans --build -d`
 * a container exists for each of the `zookeeper` and `kafka` services — each is looked up with `docker-compose ps -q`, and the failure reason names the service whose container could not be found; a failed `docker-compose ps` gives the same reason
-* zookeeper and kafka log counts are sufficient — once a second, for up to 30 seconds, the lines of `docker logs` output are counted, and zookeeper must reach 10 lines and kafka 100; the failure reason gives the count and threshold of the service that fell short, or of zookeeper alone if both did
+* zookeeper and kafka log counts are sufficient — once a second, for up to 30 seconds, the lines `docker logs` writes to standard output are counted, and zookeeper must reach 10 lines and kafka 100; the failure reason gives the count and threshold of the service that fell short, or of zookeeper alone if both did
 * a topic can be created — a topic named `test` is created inside the `kafka` container with `kafka-topics.sh`
 * a topic can be deleted — the same `test` topic is deleted the same way
 
