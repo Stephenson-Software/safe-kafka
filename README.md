@@ -41,17 +41,17 @@ If either `apt-get install` fails, the script reports which package could not be
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
 * the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
-* kafka is not already running — that is, the container `docker-compose ps -q kafka` reports for this project is not running; if it is, the script reports success and exits without starting anything
+* kafka is not already running — that is, the container `docker-compose ps -q kafka` reports for this project is not running; if it is, the script reports success and exits without starting anything. Unlike in `kdown.sh`, a failed `docker-compose ps` is not treated as an error here: it counts as not running, and the script continues
 * `docker-compose up` succeeds — the script first runs `docker-compose down --remove-orphans` to clear any containers left over from a previous run (its result is not checked), then starts the services with `docker-compose up --remove-orphans --build -d`
-* a container exists for each of the `zookeeper` and `kafka` services — each is looked up with `docker-compose ps -q`, and the failure reason names the service whose container could not be found
-* zookeeper and kafka log counts are sufficient
-* a topic can be created
-* a topic can be deleted
+* a container exists for each of the `zookeeper` and `kafka` services — each is looked up with `docker-compose ps -q`, and the failure reason names the service whose container could not be found; a failed `docker-compose ps` gives the same reason
+* zookeeper and kafka log counts are sufficient — once a second, for up to 30 seconds, the lines `docker logs` writes to standard output are counted, and zookeeper must reach 10 lines and kafka 100; the failure reason gives the count and threshold of the service that fell short, or of zookeeper alone if both did
+* a topic can be created — a topic named `test` is created inside the `kafka` container with `kafka-topics.sh`
+* a topic can be deleted — the same `test` topic is deleted the same way
 
 If all checks pass, Kafka will have started successfully. If `docker-compose up` or any later check fails, the script tears the containers down with `docker-compose down --remove-orphans`, reports the reason for the failure, and exits with a non-zero exit code.
 
 ## kdown.sh
-Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`. It then looks up the `kafka` service's container with `docker-compose ps -q kafka` and confirms that it is no longer running, exiting non-zero if it is, or if `docker-compose ps` itself fails; other containers are not considered, so a Zookeeper container left running is not reported. Volumes are not removed. Before any of this, if `DOCKER_HOST_IP` is not already set, it is derived from the first `eth0` IPv4 address, as in `kup.sh`; unlike `kup.sh`, if `eth0` has no IPv4 address the script warns and continues with the variable empty rather than exiting, so that teardown is never refused.
+Before stopping anything, the `kdown.sh` script checks that the Docker daemon is reachable with `docker info`, exiting non-zero if it is not. It then shuts down Kafka/Zookeeper and removes the containers with `docker-compose down --remove-orphans`, whose result is not checked. It then looks up the `kafka` service's container with `docker-compose ps -q kafka` and confirms that it is no longer running, exiting non-zero if it is, or if `docker-compose ps` itself fails; other containers are not considered, so a Zookeeper container left running is not reported. Volumes are not removed. Before any of this, if `DOCKER_HOST_IP` is not already set, it is derived from the first `eth0` IPv4 address, as in `kup.sh`; unlike `kup.sh`, if `eth0` has no IPv4 address the script warns and continues with the variable empty rather than exiting, so that teardown is never refused.
 
 ## Validating a change
 This repository has no CI and no automated tests, so a change to either script or to `docker-compose.yml` is validated by hand.
