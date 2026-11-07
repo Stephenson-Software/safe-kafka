@@ -41,9 +41,9 @@ If either `apt-get install` fails, the script reports which package could not be
 The following checks are then performed, in order:
 * the `docker` command is available — note that this confirms the client is installed, not that the daemon is running
 * the Docker daemon is reachable — `docker info` must succeed for the invoking user; if it does not, the script exits with a non-zero exit code before any container is started
-* kafka is not already running — that is, the container `docker-compose ps -q kafka` reports for this project is not running; if it is, the script reports success and exits without starting anything. Unlike in `kdown.sh`, a failed `docker-compose ps` is not treated as an error here: it counts as not running, and the script continues
+* kafka is not already running — that is, the container `docker-compose ps -q kafka` reports for this project is not running; if it is, the script reports success and exits without starting anything. As in `kdown.sh`, a failed lookup does not count as not running: the script exits with a non-zero exit code before tearing anything down or starting any container
 * `docker-compose up` succeeds — the script first runs `docker-compose down --remove-orphans` to clear any containers left over from a previous run (its result is not checked), then starts the services with `docker-compose up --remove-orphans --build -d`
-* a container exists for each of the `zookeeper` and `kafka` services — each is looked up with `docker-compose ps -q`, and the failure reason names the service whose container could not be found; a failed `docker-compose ps` gives the same reason
+* a container exists for each of the `zookeeper` and `kafka` services — each is looked up with `docker-compose ps -q`, and the failure reason names the service whose container could not be found; a failed `docker-compose ps` gives a separate reason that also names the service
 * zookeeper and kafka log counts are sufficient — once a second, for up to 30 seconds, the lines `docker logs` writes to standard output are counted, and zookeeper must reach 10 lines and kafka 100; the failure reason gives the count and threshold of the service that fell short, or of zookeeper alone if both did
 * a topic can be created — a topic named `test` is created inside the `kafka` container with `kafka-topics.sh`
 * a topic can be deleted — the same `test` topic is deleted the same way
@@ -71,6 +71,7 @@ The functional checks need a host that meets the requirements above, and are run
 4. `./kdown.sh` exits 0 and prints `Kafka is stopped.`, and `docker ps` no longer shows either container
 5. `./kdown.sh` run again, with nothing running, exits 0 and prints `Kafka is stopped.`
 6. To exercise the failure path, temporarily raise `ZOOKEEPER_THRESHOLD` in `kup.sh` to a value the logs cannot reach, such as `100000`, and run `./kup.sh`. About 30 seconds after the containers start, it exits non-zero and prints `Kafka failed to start. Reason: 'zookeeper log count is <count>, less than threshold of 100000'`, and `docker ps` shows neither container. Revert the edit afterwards.
+7. To exercise a failed lookup, run `./kup.sh` to start Kafka, then run it again with an executable `docker-compose` stub that exits 1 placed earlier on `PATH`. It exits non-zero and prints `Could not check whether kafka is already running`, and `docker ps` still shows both containers with their uptime unchanged. Remove the stub and run `./kdown.sh` afterwards.
 
 ## License
 This project is licensed under the **Stephenson Software Non-Commercial License (Stephenson-NC)**.  

@@ -55,7 +55,7 @@ container_id_for_service() {
 }
 
 # Prints the ID of the running container docker-compose created for service $1, or nothing if it is not running.
-# Returns non-zero if docker-compose ps itself fails.
+# Returns non-zero if docker-compose ps or docker ps itself fails.
 running_container_id_for_service() {
 	local containerId
 	containerId=$(container_id_for_service "$1") || return 1
@@ -115,7 +115,12 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # check if kafka is already running - only this project's kafka service container is considered
-if [[ $(running_container_id_for_service "$KAFKA_SERVICE_NAME") != "" ]]; then
+# a failed lookup is not treated as "not running", since the next step tears the project's containers down
+if ! runningKafkaContainerId=$(running_container_id_for_service "$KAFKA_SERVICE_NAME"); then
+	echo -e "${r}Could not check whether kafka is already running: the docker-compose ps or docker ps lookup failed. Is the script being run from the repository root?${nc}"
+	exit 1
+fi
+if [[ $runningKafkaContainerId != "" ]]; then
 	echo -e "${g}Kafka is already running.${nc}"
 	exit 0
 fi
@@ -131,14 +136,20 @@ fi
 # show running containers
 docker ps
 
-# find the containers docker-compose created, failing with a specific reason if either is missing
-zookeeperContainerId=$(container_id_for_service "$ZOOKEEPER_SERVICE_NAME")
+# find the containers docker-compose created, failing with a specific reason if a lookup fails or either is missing
+if ! zookeeperContainerId=$(container_id_for_service "$ZOOKEEPER_SERVICE_NAME"); then
+	REASON_FOR_FAILURE="docker-compose ps failed looking up the '$ZOOKEEPER_SERVICE_NAME' service's container after docker-compose up"
+	throw_error
+fi
 if [[ $zookeeperContainerId == "" ]]; then
 	REASON_FOR_FAILURE="no container found for the '$ZOOKEEPER_SERVICE_NAME' service after docker-compose up"
 	throw_error
 fi
 
-kafkaContainerId=$(container_id_for_service "$KAFKA_SERVICE_NAME")
+if ! kafkaContainerId=$(container_id_for_service "$KAFKA_SERVICE_NAME"); then
+	REASON_FOR_FAILURE="docker-compose ps failed looking up the '$KAFKA_SERVICE_NAME' service's container after docker-compose up"
+	throw_error
+fi
 if [[ $kafkaContainerId == "" ]]; then
 	REASON_FOR_FAILURE="no container found for the '$KAFKA_SERVICE_NAME' service after docker-compose up"
 	throw_error
