@@ -47,10 +47,11 @@ throw_error() {
 # Prints the ID of the container docker-compose created for service $1, running or not, or nothing if there is none.
 # Returns non-zero if docker-compose ps itself fails.
 # Looking the container up through docker-compose works whatever the Compose version's naming scheme
-# and whatever the checkout directory is called.
+# and whatever the checkout directory is called. -a is passed because Compose v2's ps lists only
+# running containers by default, which would hide a container that exited right after starting.
 container_id_for_service() {
 	local containerIds
-	containerIds=$(docker-compose ps -q "$1") || return 1
+	containerIds=$(docker-compose ps -a -q "$1") || return 1
 	echo "${containerIds%%$'\n'*}"
 }
 
