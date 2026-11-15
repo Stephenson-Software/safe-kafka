@@ -27,7 +27,7 @@ KAFKA_SERVICE_NAME="kafka"
 NETWORK_CARD_INTERFACE="eth0"
 
 # Prints the ID of the running container docker-compose created for service $1, or nothing if it is not running.
-# Returns non-zero if docker-compose ps itself fails.
+# Returns non-zero if docker-compose ps or docker ps itself fails.
 # Looking the container up through docker-compose works whatever the Compose version's naming scheme
 # and whatever the checkout directory is called.
 running_container_id_for_service() {
@@ -63,7 +63,7 @@ docker-compose down --remove-orphans
 
 # look up this project's kafka service container - a failed lookup is not treated as "stopped"
 if ! kafkaContainerId=$(running_container_id_for_service "$KAFKA_SERVICE_NAME"); then
-	echo -e "${r}Could not check whether kafka is still running: docker-compose ps failed. Is the script being run from the repository root?${nc}"
+	echo -e "${r}Could not check whether kafka is still running: the docker-compose ps or docker ps lookup failed. Is the script being run from the repository root?${nc}"
 	exit 1
 fi
 
